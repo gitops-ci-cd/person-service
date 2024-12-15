@@ -54,7 +54,7 @@ services:
       - --go_out=./internal/gen/pb
       - --go-grpc_opt=module=github.com/gitops-ci-cd/schema
       - --go-grpc_out=./internal/gen/pb
-      - ./proto/com/acme/schema/v1/thing.proto
+      - ./proto/com/acme/schema/v1/person.proto
     volumes:
       - .:/usr/src/app:delegated
 

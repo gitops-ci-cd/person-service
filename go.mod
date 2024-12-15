@@ -1,4 +1,4 @@
-module github.com/gitops-ci-cd/go-grpc-service
+module github.com/gitops-ci-cd/person-service
 
 go 1.23.4
 

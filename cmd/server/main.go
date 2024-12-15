@@ -12,8 +12,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
-	pb "github.com/gitops-ci-cd/go-grpc-service/internal/gen/pb/v1"
-	"github.com/gitops-ci-cd/go-grpc-service/internal/things"
+	pb "github.com/gitops-ci-cd/person-service/internal/gen/pb/v1"
+	"github.com/gitops-ci-cd/person-service/internal/people"
 )
 
 func main() {
@@ -54,7 +54,7 @@ func run(port string) error {
 	)
 
 	// Register the service
-	pb.RegisterThingServiceServer(server, things.NewThingServiceHandler())
+	pb.RegisterPersonServiceServer(server, people.NewPersonServiceHandler())
 
 	// Register reflection service for debugging
 	reflection.Register(server)
