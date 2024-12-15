@@ -16,9 +16,7 @@ services:
       - ${LOCAL_DEP_PATH:-..}:/local
 
   app:
-    env_file:
-      - path: .env
-        required: false
+    env_file: .env
     tty: true
     stdin_open: true
     build:
@@ -70,5 +68,32 @@ services:
     <<: *go
     command: test ./...
 
+  db.migrate:
+    <<: *go
+    profiles: ["tools"]
+    entrypoint: go run github.com/jackc/tern --config db/tern.conf --migrations db/migrations
+    command: migrate
+
+  db.new:
+    <<: *go
+    profiles: ["tools"]
+    entrypoint: go run github.com/jackc/tern --migrations db/migrations
+    command: table
+
+  sqlc.generate:
+    <<: *go
+    profiles: ["tools"]
+    entrypoint: go run github.com/sqlc-dev/sqlc/cmd/sqlc -f db/sqlc.yaml
+    command: generate
+
+  postgres:
+    env_file: .env
+    image: postgres:17
+    user: postgres
+    volumes:
+      - postgres:/var/lib/postgresql/data
+      # - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+
 volumes:
   gomod: {}
+  postgres: {}
