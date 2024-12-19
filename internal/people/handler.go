@@ -14,7 +14,7 @@ import (
 // personHandler implements the PersonServiceServer interface.
 type personHandler struct {
 	pb.UnimplementedPersonServiceServer // Embedding for forward compatibility
-	queries *db.Queries
+	queries                             *db.Queries
 }
 
 // NewPersonServiceHandler creates a new instance of personHandler.
@@ -28,18 +28,17 @@ func (h *personHandler) Fetch(ctx context.Context, req *pb.PersonRequest) (*pb.P
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
 
-	var name string
+	const defaultName = "World"
 
 	id, err := uuid.Parse(req.Uuid)
 	if err != nil {
-		name = "World"
+		return &pb.PersonResponse{Name: defaultName}, nil
 	}
 
 	person, err := h.queries.GetPerson(ctx, id)
-	if err != nil {
-		name = "World"
+	if err != nil || person.Name == "" {
+		return &pb.PersonResponse{Name: defaultName}, nil
 	}
-	name = person.Name
 
-	return &pb.PersonResponse{Name: name}, nil
+	return &pb.PersonResponse{Name: person.Name}, nil
 }
