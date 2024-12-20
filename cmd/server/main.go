@@ -13,8 +13,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
-	"github.com/gitops-ci-cd/person-service/internal/gen/db"
-	pb "github.com/gitops-ci-cd/person-service/internal/gen/pb/v1"
+	"github.com/gitops-ci-cd/person-service/internal/_gen/db"
+	pb "github.com/gitops-ci-cd/person-service/internal/_gen/pb/v1"
 	"github.com/gitops-ci-cd/person-service/internal/people"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
