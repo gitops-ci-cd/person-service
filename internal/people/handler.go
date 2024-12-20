@@ -3,27 +3,35 @@ package people
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"github.com/gitops-ci-cd/person-service/internal/_gen/db"
 	pb "github.com/gitops-ci-cd/person-service/internal/_gen/pb/v1"
-	"github.com/google/uuid"
 )
 
-// personHandler implements the PersonServiceServer interface.
-type personHandler struct {
+// personServiceHandler implements the PersonServiceServer interface.
+type personServiceHandler struct {
 	pb.UnimplementedPersonServiceServer // Embedding for forward compatibility
 	queries                             *db.Queries
 }
 
-// NewPersonServiceHandler creates a new instance of personHandler.
+// Define the pseudo-database with UUIDs and names of the main characters of Bluey
+var personData = map[uuid.UUID]string{
+	uuid.MustParse("11111111-1111-1111-1111-111111111111"): "Bluey Heeler",
+	uuid.MustParse("22222222-2222-2222-2222-222222222222"): "Bingo Heeler",
+	uuid.MustParse("33333333-3333-3333-3333-333333333333"): "Bandit Heeler",
+	uuid.MustParse("44444444-4444-4444-4444-444444444444"): "Chilli Heeler",
+}
+
+// NewPersonServiceHandler creates a new instance of personServiceHandler.
 func NewPersonServiceHandler(queries *db.Queries) pb.PersonServiceServer {
-	return &personHandler{queries: queries}
+	return &personServiceHandler{queries: queries}
 }
 
 // Fetch handles an RPC request
-func (h *personHandler) Fetch(ctx context.Context, req *pb.PersonRequest) (*pb.PersonResponse, error) {
+func (h *personServiceHandler) Fetch(ctx context.Context, req *pb.PersonRequest) (*pb.PersonResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
@@ -52,12 +60,4 @@ func lookupPerson(uuidStr string) (string, error) {
 	}
 
 	return name, nil
-}
-
-// Define the pseudo-database with UUIDs and names of the main characters of Bluey
-var personData = map[uuid.UUID]string{
-	uuid.MustParse("11111111-1111-1111-1111-111111111111"): "Bluey Heeler",
-	uuid.MustParse("22222222-2222-2222-2222-222222222222"): "Bingo Heeler",
-	uuid.MustParse("33333333-3333-3333-3333-333333333333"): "Bandit Heeler",
-	uuid.MustParse("44444444-4444-4444-4444-444444444444"): "Chilli Heeler",
 }

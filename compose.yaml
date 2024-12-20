@@ -35,6 +35,9 @@ services:
           path: ./internal/
           target: /usr/src/app/internal/
         - action: sync+restart
+          path: ./pkg/
+          target: /usr/src/app/pkg/
+        - action: sync+restart
           path: ./go.mod
           target: /usr/src/app/go.mod
         - action: sync+restart
@@ -44,6 +47,7 @@ services:
       - gomod:/go/pkg/mod:cached
 
   protoc:
+    profiles: [tasks]
     image: ghcr.io/gitops-ci-cd/protoc:latest
     entrypoint: protoc
     command:
@@ -58,31 +62,34 @@ services:
 
   install:
     <<: *go
+    profiles: [tasks]
     command: mod tidy
 
   lint:
     <<: *go
+    profiles: [tasks]
     command: vet ./...
 
   test:
     <<: *go
+    profiles: [tasks]
     command: test ./...
 
   db.migrate:
     <<: *go
-    profiles: ["tools"]
+    profiles: [tasks]
     entrypoint: go run github.com/jackc/tern --config db/tern.conf --migrations db/migrations
     command: migrate
 
   db.new:
     <<: *go
-    profiles: ["tools"]
+    profiles: [tasks]
     entrypoint: go run github.com/jackc/tern --migrations db/migrations
     command: table
 
   sqlc.generate:
     <<: *go
-    profiles: ["tools"]
+    profiles: [tasks]
     entrypoint: go run github.com/sqlc-dev/sqlc/cmd/sqlc -f db/sqlc.yaml
     command: generate
 

@@ -8,15 +8,13 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
 
 	"github.com/gitops-ci-cd/person-service/internal/_gen/db"
-	pb "github.com/gitops-ci-cd/person-service/internal/_gen/pb/v1"
-	"github.com/gitops-ci-cd/person-service/internal/people"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/gitops-ci-cd/person-service/internal/services"
+	"github.com/gitops-ci-cd/person-service/pkg/telemetry"
 )
 
 var (
@@ -24,6 +22,27 @@ var (
 	queries      *db.Queries
 	ctx          = context.Background()
 )
+
+// Configure the logger
+func init() {
+	level := func() slog.Level {
+		switch os.Getenv("LOG_LEVEL") {
+		case "ERROR":
+			return slog.LevelError
+		case "WARN":
+			return slog.LevelWarn
+		case "INFO":
+			return slog.LevelInfo
+		case "DEBUG":
+			return slog.LevelDebug
+		default:
+			return slog.LevelInfo
+		}
+	}()
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: level,
+	})))
+}
 
 // Connect to Postgres
 func init() {
@@ -37,19 +56,19 @@ func init() {
 	queries = db.New(pgPool)
 }
 
+// main is the entry point for the server
 func main() {
 	// Ensure open connections are closed when the server is stopped
 	defer pgPool.Close()
 
-	// Define the port
 	port := ":" + os.Getenv("PORT")
 	if port == ":" {
 		port = ":50051"
 	}
 
-	// Run the server. Separated into a function to better facilitate testing
-	if err := run(port); err != nil {
-		slog.Error("Server terminated with error", "error", err)
+	// Run the server
+	if err := run(port, services.Register); err != nil {
+		slog.Error("Server terminated", "error", err)
 		os.Exit(1)
 	} else {
 		slog.Warn("Server stopped")
@@ -57,42 +76,34 @@ func main() {
 }
 
 // run sets up and starts the gRPC server
-func run(port string) error {
+func run(port string, registerFunc func(*grpc.Server, *db.Queries)) error {
 	// Create a TCP listener
 	listener, err := net.Listen("tcp", port)
 	if err != nil {
-		if os.IsTimeout(err) {
-			slog.Error("Timeout while attempting to listen on port", "port", port)
-		} else if os.IsPermission(err) {
-			slog.Error("Permission denied for port", "port", port)
-		} else {
-			slog.Error("Port is already in use or other error", "port", port)
-		}
+		slog.Error("Failed to start listener", "port", port, "error", err)
 		return err
 	}
 	defer listener.Close()
 
 	// Create a new gRPC server
 	server := grpc.NewServer(
-		grpc.UnaryInterceptor(loggingInterceptor),
+		grpc.UnaryInterceptor(telemetry.LoggingInterceptor),
 	)
 
-	// Register the service
-	pb.RegisterPersonServiceServer(server, people.NewPersonServiceHandler(queries))
-
-	// Register reflection service for debugging
-	reflection.Register(server)
+	// Register services using the provided function
+	registerFunc(server, queries)
 
 	// Handle graceful shutdown
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	setupSignalHandler(cancel)
 
-	// Run the server in a goroutine
+	// Run the server in a goroutine to allow for graceful shutdown
 	go func() {
 		slog.Info("Server listening...", "port", port)
 		if err := server.Serve(listener); err != nil {
 			slog.Error("Failed to serve", "error", err)
-			stop() // Trigger graceful shutdown
+			cancel()
 		}
 	}()
 
@@ -104,16 +115,13 @@ func run(port string) error {
 	return nil
 }
 
-func loggingInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-	start := time.Now()
-	res, err := handler(ctx, req)
-	duration := time.Since(start)
-
-	slog.Info("Handled gRPC request",
-		"method", info.FullMethod,
-		"duration", duration.String(),
-		"error", err,
-	)
-
-	return res, err
+// setupSignalHandler sets up a signal handler to cancel the provided context
+func setupSignalHandler(cancelFunc context.CancelFunc) {
+	go func() {
+		ch := make(chan os.Signal, 1)
+		signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
+		sig := <-ch
+		slog.Warn("Received termination signal", "signal", sig)
+		cancelFunc()
+	}()
 }
