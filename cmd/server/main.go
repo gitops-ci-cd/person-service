@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"log/slog"
 	"net"
 	"os"
@@ -50,7 +50,8 @@ func init() {
 
 	pgPool, err = pgxpool.New(ctx, os.Getenv("POSTGRES_URL"))
 	if err != nil {
-		log.Fatalf("Failed to initialize Postgres store: %v", err)
+		slog.Error("Failed to initialize Postgres store", "error", err)
+		os.Exit(1)
 	}
 
 	queries = db.New(pgPool)
@@ -80,7 +81,7 @@ func run(port string, registerFunc func(*grpc.Server, *db.Queries)) error {
 	// Create a TCP listener
 	listener, err := net.Listen("tcp", port)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not create tcp listener on port %s: %w", port, err)
 	}
 	defer listener.Close()
 
