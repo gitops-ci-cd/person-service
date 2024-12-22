@@ -4,70 +4,88 @@ import (
 	"context"
 	"testing"
 
-	pb "github.com/gitops-ci-cd/person-service/internal/_gen/pb/v1"
+	"github.com/google/uuid"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	pb "github.com/gitops-ci-cd/person-service/internal/_gen/pb/v1"
 )
 
-func TestFetch(t *testing.T) {
+// MockService is a mock implementation of the Service interface.
+type MockService struct {
+	LookupFunc func(id uuid.UUID) string
+}
+
+func (m *MockService) Lookup(id uuid.UUID) string {
+	return m.LookupFunc(id)
+}
+
+func TestHandler_Fetch(t *testing.T) {
 	// Define test cases in a tabular format
 	testCases := []struct {
-		name          string
-		inputUUID     string
-		expectedName  string
-		expectedError error
+		name           string
+		request        *pb.PersonRequest
+		mockLookupFunc func(uuid.UUID) string
+		expectedName   string
+		expectedCode   codes.Code
 	}{
 		{
-			name:          "Valid UUID - Bluey",
-			inputUUID:     "11111111-1111-1111-1111-111111111111",
-			expectedName:  "Bluey Heeler",
-			expectedError: nil,
+			name: "Valid UUID - Bluey",
+			request: &pb.PersonRequest{
+				Uuid: "11111111-1111-1111-1111-111111111111",
+			},
+			mockLookupFunc: func(id uuid.UUID) string {
+				return "Bluey Heeler"
+			},
+			expectedName: "Bluey Heeler",
+			expectedCode: codes.OK,
 		},
 		{
-			name:          "Valid UUID - Bingo",
-			inputUUID:     "22222222-2222-2222-2222-222222222222",
-			expectedName:  "Bingo Heeler",
-			expectedError: nil,
+			name: "Invalid UUID",
+			request: &pb.PersonRequest{
+				Uuid: "invalid-uuid",
+			},
+			mockLookupFunc: nil, // Won't be called
+			expectedName:   "",
+			expectedCode:   codes.InvalidArgument,
 		},
 		{
-			name:          "Valid UUID - Not Found",
-			inputUUID:     "55555555-5555-5555-5555-555555555555",
-			expectedName:  "World", // Default value
-			expectedError: nil,
-		},
-		{
-			name:          "Invalid UUID",
-			inputUUID:     "invalid-uuid",
-			expectedName:  "World", // Default value
-			expectedError: nil,
-		},
-		{
-			name:          "Nil UUID",
-			inputUUID:     "",
-			expectedName:  "World", // Default value
-			expectedError: nil,
+			name: "UUID Not Found",
+			request: &pb.PersonRequest{
+				Uuid: "55555555-5555-5555-5555-555555555555",
+			},
+			mockLookupFunc: func(id uuid.UUID) string {
+				return "World" // Default value
+			},
+			expectedName: "World",
+			expectedCode: codes.OK,
 		},
 	}
-
-	// Create a handler with the pseudo-database
-	handler := NewPersonServiceHandler(nil)
 
 	// Execute each test case
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// Create a request
-			req := &pb.PersonRequest{Uuid: tc.inputUUID}
-
-			// Call the Fetch method
-			resp, err := handler.Fetch(context.Background(), req)
-
-			// Verify the response name
-			if resp.Name != tc.expectedName {
-				t.Errorf("expected name: %s, got: %s", tc.expectedName, resp.Name)
+			// Set up the mock service
+			mockService := &MockService{
+				LookupFunc: tc.mockLookupFunc,
 			}
 
-			// Verify the error
-			if status.Code(err) != status.Code(tc.expectedError) {
-				t.Errorf("expected error code: %v, got: %v", status.Code(tc.expectedError), status.Code(err))
+			// Create the handler
+			handler := &Handler{
+				Service: mockService,
+			}
+
+			// Call the Fetch method
+			resp, err := handler.Fetch(context.Background(), tc.request)
+
+			// Verify the error code
+			if status.Code(err) != tc.expectedCode {
+				t.Errorf("expected code: %v, got: %v", tc.expectedCode, status.Code(err))
+			}
+
+			// If no error, verify the response name
+			if tc.expectedCode == codes.OK && resp.Name != tc.expectedName {
+				t.Errorf("expected name: %s, got: %s", tc.expectedName, resp.Name)
 			}
 		})
 	}
