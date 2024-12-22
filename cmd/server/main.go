@@ -20,8 +20,6 @@ var (
 	ctx          = context.Background()
 )
 
-const defaultPort = "50051"
-
 // Configure the logger
 func init() {
 	level := func() slog.Level {
@@ -55,6 +53,8 @@ func init() {
 
 	queries = db.New(pgPool)
 }
+
+const defaultPort = "50051"
 
 // main is the entry point for the server
 func main() {
