@@ -29,9 +29,13 @@ func (h *Handler) Fetch(ctx context.Context, req *pb.PersonRequest) (*pb.PersonR
 		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
 	}
 
-	id, err := uuid.Parse(req.Uuid)
-	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "UUID cannot be parsed")
+	var id uuid.UUID
+	var err error
+	if req.Uuid != "" {
+		id, err = uuid.Parse(req.Uuid)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "UUID cannot be parsed")
+		}
 	}
 
 	name := h.Service.Lookup(id)
