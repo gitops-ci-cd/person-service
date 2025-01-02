@@ -1,5 +1,6 @@
 services:
   go: &go
+    profiles: [tasks]
     env_file:
       - path: .env
         required: false
@@ -16,7 +17,9 @@ services:
       - ${LOCAL_DEP_PATH:-..}:/local
 
   app:
-    env_file: .env
+    env_file:
+      - path: .env
+        required: false
     tty: true
     stdin_open: true
     build:
