@@ -24,13 +24,11 @@ var personData = map[uuid.UUID]string{
 	uuid.MustParse("44444444-4444-4444-4444-444444444444"): "Chilli Heeler",
 }
 
-const defaultName = "World"
-
 // Lookup retrieves a person's name by their UUID
 func (s *Service) Lookup(id uuid.UUID) (string) {
 	name, exists := personData[id]
 	if !exists {
-		return defaultName
+		return ""
 	}
 
 	return name

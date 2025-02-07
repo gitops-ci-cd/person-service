@@ -26,7 +26,7 @@ func TestLookup(t *testing.T) {
 		{
 			name:          "Valid UUID - Not Found",
 			inputUUID:     uuid.MustParse("55555555-5555-5555-5555-555555555555"),
-			expectedName:  "World", // Default value
+			expectedName:  "", // Default value
 		},
 	}
 

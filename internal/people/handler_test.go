@@ -55,9 +55,9 @@ func TestHandler_Fetch(t *testing.T) {
 				Uuid: "55555555-5555-5555-5555-555555555555",
 			},
 			mockLookupFunc: func(id uuid.UUID) string {
-				return "World" // Default value
+				return "" // Default value
 			},
-			expectedName: "World",
+			expectedName: "",
 			expectedCode: codes.OK,
 		},
 	}
