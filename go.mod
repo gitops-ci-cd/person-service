@@ -1,12 +1,13 @@
 module github.com/gitops-ci-cd/person-service
 
 go 1.23.4
+
 require (
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.7.4
 	github.com/jackc/tern v1.13.0
 	github.com/sqlc-dev/sqlc v1.28.0
-	google.golang.org/grpc v1.71.0
+	google.golang.org/grpc v1.71.1
 	google.golang.org/protobuf v1.36.6
 )
 
