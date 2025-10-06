@@ -8,7 +8,7 @@ require (
 	github.com/jackc/tern v1.13.0
 	github.com/sqlc-dev/sqlc v1.30.0
 	google.golang.org/grpc v1.75.1
-	google.golang.org/protobuf v1.36.9
+	google.golang.org/protobuf v1.36.10
 )
 
 require (
