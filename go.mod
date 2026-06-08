@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/google/uuid v1.6.0
-	github.com/jackc/pgx/v5 v5.9.2
+	github.com/jackc/pgx/v5 v5.10.0
 	github.com/jackc/tern v1.13.0
 	github.com/sqlc-dev/sqlc v1.31.1
 	google.golang.org/grpc v1.81.1
